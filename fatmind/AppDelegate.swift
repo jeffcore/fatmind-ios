@@ -13,7 +13,7 @@ import UIKit
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
-    
+  
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch. 
         return true
@@ -41,81 +41,44 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let quantumDB = QuantumDB()
         
         //check if the initial database was loaded from master
-        if quantumDB.isInitialDataLoaded() {
-            if quantumDB.openDB(){
+        if quantumDB.openDB() {
+            if quantumDB.isInitialDataLoaded() {
+            
                 service.getIsServiceAlive {
                     (status) in
                     if status {
                         print("AppDelegate.swift: service is alive")
                         print("AppDelegate.swift: running  quantumDB.runLoadNewData")
-                       quantumDB.syncNewDataFromMaster {
+                        quantumDB.syncFromServer {
                             (status) in
                             print("AppDelegate.swift: quantumDB.runLoadNewData return status - \(status)")
                             if status {
                                 print("AppDelegate.swift: quantumDB.copyUpdatedQuantamToMasterDB ")
 
-    //                            quantumDB.copyUpdatedQuantamToMasterDB {
-    //                                (status) in
-    //                                if status {
-    //                                    print("AppDelegate.swift: status of run quantumDB.copyUpdatedQuantamToMasterDB  call - \(status)")
-    //                                }
-    //                            }
+                                quantumDB.syncToServer {
+                                    (status) in
+                                    if status {
+                                        print("AppDelegate.swift: status of run quantumDB.syncToServer  call - \(status)")
+                                    }
+                                }
                             }
                         }
                        
                     }
                 }
+            } else {
+                print("data never imported move to seque")
+                let storyboard:UIStoryboard = UIStoryboard(name: "Main", bundle: nil)
+                let vc:LoadDataViewController = storyboard.instantiateViewController(withIdentifier: "LoadDataViewController") as! LoadDataViewController
+                self.window?.rootViewController = vc
+                self.window?.makeKeyAndVisible()
             }
-        } else {
-            print("data never imported move to seque")
-            let storyboard:UIStoryboard = UIStoryboard(name: "Main", bundle: nil)
-            let vc:LoadDataViewController = storyboard.instantiateViewController(withIdentifier: "LoadDataViewController") as! LoadDataViewController
-            self.window?.rootViewController = vc
-            self.window?.makeKeyAndVisible()
         }
-//        
-       // self.preloadData()
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
         // Saves changes in the application's managed object context before the application terminates.
     }
-   
-    //preloads all the data 
-    //  First App Load - the entire master DB is loaded into SQLite DB
-    //  Second ... n App Load - it loads new quantums from master DB into SQLite DB
-    func preloadData() {
-//        service.getIsAlive {
-//            (isAlive) in
-//            
-//            if isAlive {
-//                print("api is alive")
-//                
-//                if self.quantumDB.isInitialDataLoaded() {
-//                   
-//                    self.quantumDB.runLoadNewData {
-//                        (status) in
-//                        if status {
-//                            print("status of run loadnewdata call \(status)")
-//                        }
-//                        
-//                    }
-//                    
-//                } else {
-//                    
-//                    dispatch_async(dispatch_get_main_queue()){
-//
-//                        let storyboard:UIStoryboard = UIStoryboard(name: "Main", bundle: nil)
-//                        let vc:LoadDataViewController = storyboard.instantiateViewControllerWithIdentifier("LoadDataViewController") as! LoadDataViewController
-//                        
-//                        self.window?.rootViewController?.presentViewController(vc, animated: true, completion: nil)
-//                    }
-//                    
-//                }
-//            }
-//        }
-    }
-    
 }
 

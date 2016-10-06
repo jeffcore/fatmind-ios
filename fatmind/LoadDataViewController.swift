@@ -12,6 +12,7 @@ class LoadDataViewController: UIViewController {
     
     @IBOutlet weak var loadingIndicator: UIActivityIndicatorView!
     let quantumDB = QuantumDB()
+    let service = APIService()
     var window: UIWindow?
     
     override func viewDidLoad() {
@@ -32,19 +33,29 @@ class LoadDataViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         //run the initial data import
         if quantumDB.openDB() {
-            if quantumDB.createDB() {
-                print("DB CREATED")
-                
-                self.quantumDB.runInitialDataLoad {
-                    (status) in
-                    if status {
-                        print("data successfully imported")
-                        
-                    } else {
-                        print("problem importing database")
-                    }
-                    DispatchQueue.main.async{
-                        self.performSegue(withIdentifier: "SegueToMainVC", sender: self)
+            service.getIsServiceAlive {
+                (status) in
+                if status {
+                    self.quantumDB.runInitialDataLoad {
+                        (status) in
+                        if status {
+                            print("data successfully imported")
+                            self.quantumDB.syncToServer{
+                                (status) in
+                                
+                                if status {
+                                    print("data successfully synced to server")
+                                } else {
+                                    print("problem syncing data to server")
+                                }
+                                
+                                DispatchQueue.main.async{
+                                    self.performSegue(withIdentifier: "SegueToMainVC", sender: self)
+                                }
+                            }
+                        } else {
+                            print("problem importing database")
+                        }                        
                     }
                 }
             }

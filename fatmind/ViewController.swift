@@ -7,7 +7,6 @@
 //
 
 import UIKit
-//import SQLite
 import Foundation
 
 enum QuantumState {
@@ -186,7 +185,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     func addQuantum() {
         //Add Quantum option
         if self.quantumTextView.text.characters.count > 0 {
-            let quantum = Quantum(id: UUID().uuidString.lowercased() , userID: "333333", note: self.quantumTextView.text, dateCreated: "", dateUpdated: "", new: true, updated: false, deleted: false)
+            let quantum = Quantum(id: UUID().uuidString.lowercased() , userID: "333333", note: self.quantumTextView.text, dateCreated: self.getDateNowInString(), dateUpdated: self.getDateNowInString(), deleted: false)
             
             quantumDB.insertQuantumToLocalDB(withQuantum: quantum)
             quantumList.insert(quantum, at: 0)
@@ -208,7 +207,6 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         let q = quantumList[quantumIndex]
         q.note = self.quantumTextView.text
         q.dateUpdated = self.getDateNowInString()
-        q.updated = true
         quantumDB.updateQuantumInLocalDB(withQuantum: q)
         //reload tableview
         quantumListTableView.reloadData()
@@ -224,8 +222,6 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         //reset labels of buttons
         leftButton.setTitle("Search", for: UIControlState())
         rightButton.setTitle("Add", for: UIControlState())
-        
-        quantumDB.getChanges()
         
         //put cursor in UITextView -- focus
         self.quantumTextView.becomeFirstResponder()
@@ -261,9 +257,8 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         //format date for API call to get new quantums since last visit
         let dateNow = Date()
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z" //format style. Browse online to get a format that fits your needs.
-        
-        //dateFormatter.timeZone = NSTimeZone(abbreviation: "UTC");
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss" //format style. Browse online to get a format that fits your needs.
+     
         //convert date to string
         return dateFormatter.string(from: dateNow)
         

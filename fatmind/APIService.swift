@@ -55,62 +55,67 @@ class APIService {
         self.getWithParams(url, params: postParam, callback: callback)
     }
     
-    //GET WITH PARAMS a list of quanta created after date
-    func getQuantumCreatedAfterDate(_ dateLastUpdate:String, callback:@escaping (Int, NSDictionary) -> ()) {
-        let url = "\(apiURL)/api/quantum/bydate"
-        let postParam  = "?datelastupdate=\(dateLastUpdate)"
-        
-        print("APIService.swift: last date updated in getQuantumCreatedAFterDate in API server \(dateLastUpdate)")
-        //postWithParams(url, postParam:postParam, callback: callback)
-        self.getWithParams(url, params: postParam, callback: callback)
-    }
-
-    //GET WITH PARAMS a list of quanta created after date
-    func getQuantumUpdatedAfterDate(_ dateLastUpdate:String, callback:@escaping (Int, NSDictionary) -> ()) {
-        let url = "\(apiURL)/api/quantum/bydateupdated"
-        let postParam  = "?datelastupdate=\(dateLastUpdate)"
-        
-        print("APIService.swift: ast date updated in getQuantumUpdatedAfterDate in API server \(dateLastUpdate)")
-        //postWithParams(url, postParam:postParam, callback: callback)
-        self.getWithParams(url, params: postParam, callback: callback)
-    }
-    
-    //POST - create a quantum
-    func createQuantum(_ q: Quantum, callback:@escaping (Int, NSDictionary) -> ()) {
-        let url = "\(apiURL)/api/quantum/"
-        //let postParam:NSString = "note=\(q.note!)"
-        if let postJSON = q.noteToJSON() {
-            postWithJSON(url, postData: postJSON as Data, callback: callback)
-        } else {
-            callback(0, ["0": "error converting quantum body to json"])
-        }
-    }
     
     
-    func sendChangesToMasterDB(quantumList qList: [Quantum], callback:@escaping (Int, NSDictionary) -> ()) {
+    
+    func postSyncToServer(withQuantumList qList: [Quantum], callback:@escaping (Int, NSDictionary) -> ()) {
         let url = "\(apiURL)/api/quantum/sync"
         if let postJSON = Quantum.quantumToJSON(quantumList: qList) {
             postWithJSON(url, postData: postJSON as Data, callback: callback)
         } else {
             callback(0, ["0": "error converting quantum body to json"])
-        }        
-    }
-    
-    //let quantumJSON =  Quantum.quantumToJSON(quantumList: quantumList)
-
-    
-    //PUT - update a quantum
-    func updateQuantum(_ q: Quantum, callback:@escaping (Int, NSDictionary) -> ()) {
-        let url = "\(apiURL)/api/quantum/\(q.id!)"
-        //let postParam:NSString = "note=\(q.note!)"
-        if let postJSON = q.noteToJSON() {
-            putWithJSON(url, postData: postJSON as Data, callback: callback)
-        } else {
-            callback(0, ["0": "error converting quantum body to json"])
         }
     }
 
     
+    
+//  /// NOT USED
+    //
+//    //GET WITH PARAMS a list of quanta created after date
+//    func getQuantumCreatedAfterDate(_ dateLastUpdate:String, callback:@escaping (Int, NSDictionary) -> ()) {
+//        let url = "\(apiURL)/api/quantum/bydate"
+//        let postParam  = "?datelastupdate=\(dateLastUpdate)"
+//        
+//        print("APIService.swift: last date updated in getQuantumCreatedAFterDate in API server \(dateLastUpdate)")
+//        //postWithParams(url, postParam:postParam, callback: callback)
+//        self.getWithParams(url, params: postParam, callback: callback)
+//    }
+//
+//    //GET WITH PARAMS a list of quanta created after date
+//    func getQuantumUpdatedAfterDate(_ dateLastUpdate:String, callback:@escaping (Int, NSDictionary) -> ()) {
+//        let url = "\(apiURL)/api/quantum/bydateupdated"
+//        let postParam  = "?datelastupdate=\(dateLastUpdate)"
+//        
+//        print("APIService.swift: ast date updated in getQuantumUpdatedAfterDate in API server \(dateLastUpdate)")
+//        //postWithParams(url, postParam:postParam, callback: callback)
+//        self.getWithParams(url, params: postParam, callback: callback)
+//    }
+//    
+//    //POST - create a quantum
+//    func createQuantum(_ q: Quantum, callback:@escaping (Int, NSDictionary) -> ()) {
+//        let url = "\(apiURL)/api/quantum/"
+//        //let postParam:NSString = "note=\(q.note!)"
+//        if let postJSON = q.noteToJSON() {
+//            postWithJSON(url, postData: postJSON as Data, callback: callback)
+//        } else {
+//            callback(0, ["0": "error converting quantum body to json"])
+//        }
+//    }
+//    
+//    
+//    
+//    //PUT - update a quantum
+//    func updateQuantum(_ q: Quantum, callback:@escaping (Int, NSDictionary) -> ()) {
+//        let url = "\(apiURL)/api/quantum/\(q.id!)"
+//        //let postParam:NSString = "note=\(q.note!)"
+//        if let postJSON = q.noteToJSON() {
+//            putWithJSON(url, postData: postJSON as Data, callback: callback)
+//        } else {
+//            callback(0, ["0": "error converting quantum body to json"])
+//        }
+//    }
+//
+//    
     
     
     
