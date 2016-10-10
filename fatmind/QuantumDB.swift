@@ -31,6 +31,8 @@ class QuantumDB {
             if !userDefaults.bool(forKey: "hasLaunchedOnce") {
                 if createDB() {
                     self.userDefaults.set(true, forKey: "hasLaunchedOnce")
+                    self.userDefaults.set(0, forKey: "clientCounterLastSync")
+                    self.userDefaults.set(0, forKey: "serverCounterLastSync")
                     self.setDateLastImportUserDefault(0.0)
                     self.setDateLastSyncToServerUserDefault(withSecondsToAdd: 0.0)
                     print("database created")

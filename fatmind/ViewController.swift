@@ -55,7 +55,6 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         if quantumDB.openDB() {
             print("database opened")
         }
-                       
     }
     
     override func didReceiveMemoryWarning() {
@@ -80,32 +79,56 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     //1. cleared textbox 
     //     after second return save
     //2. opened existing quantum
-    //     any return saves - you might not always hit return when you edit
-    //       -todo any keypress saves 
-    //       -exiting current quantum - clear or select a new one
+    //     any keypress saves
     func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+        print("return but pressed \(textView.text!)")
+      
+        let updatedString = (textView.text as NSString?)?.replacingCharacters(in: range, with: text)
+        self.quantumTextView.text = updatedString! as String
+        
+        
         if text == "\n" {
             
-            print("return but pressed")
-            
+            //covers case when return key is pressed
             switch quantumState {
                 case .adding:
-                    print("in adding")
+                    print("in adding return char")
+                    self.returnedPressed += 1
                     self.performQuantumSearch()
-
+                    //if return key is pressed twice a new quantume is created
                     if self.returnedPressed == 2 {
                         self.addQuantum()
                         self.quantumState = QuantumState.editing
+                        self.returnedPressed = 0
                     }
-                    self.returnedPressed += 1
                 case .editing:
-                    print("in editing")
+                    print("in editing return char")
+                    //covers logic if return key is pressed in editing mode, just updates the quantum
                     self.updateQuantum()
+                    self.returnedPressed = 0
             }
-            
-            return true
+        } else {
+            self.quantumTextView.text = textView.text
+
+
+            switch quantumState {
+            case .adding:
+                print("in adding other char")
+                //creates a new quantum if return key was pressed once, followed by any other key
+                if self.returnedPressed == 1 {
+                    self.addQuantum()
+                    self.quantumState = QuantumState.editing
+                    self.returnedPressed = 0
+                }
+            case .editing:
+                //updated if any other key is pressed while in editing mode
+                print("in editing other char")
+                self.updateQuantum()
+                self.returnedPressed = 0
+            }
         }
-        return true
+        
+        return false
     }
     
     
@@ -119,6 +142,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             if button.titleLabel!.text! == "Search" {
                 self.dismissKeyboard()
                 self.performQuantumSearch()
+                self.returnedPressed = 0
             } else {
                 //Update option
                 self.updateQuantum()
@@ -134,6 +158,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             //  reset the buttons to SEARCH left button and Add right button
             if button.titleLabel!.text! == "Clear" {
                 self.quantumTextView.text = ""
+                self.returnedPressed = 0
                 //put cursor in UITextView -- focus
                 self.quantumTextView.becomeFirstResponder()
                 //reset labels of buttons
@@ -148,34 +173,20 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     
 // MARK: - Homemade Functions
     
-    
-    //Generates a random GUID yyMMddHHmmss + a random number between 10001 and 28999
-    // NOT USED ANYMORE
-    fileprivate func getRandomID() -> String{
-        let dateNow = Date()
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyMMddHHmmss" //format style. Browse online to get a format that fits your needs.
-        
-        //convert date to string
-        let dateNowString = dateFormatter.string(from: dateNow)
-        
-        return "\(dateNowString)\(Int(arc4random_uniform(18999) + 10001))"
-    }
-
     //Function that performs the quantum search
     func performQuantumSearch() {
-        //clear array of quanta
+        //clear array of quantam
         quantumList.removeAll()
         
         //Perform Full Text Search
         quantumList = quantumDB.fullTextSearchQuantum(self.quantumTextView.text)
         //if only one quanta found  loat it in the UITextView
-        if quantumList.count == 1 {
-            quantumTextView.text = quantumList[0].note
-            //set labels of buttons for viewing quanta
-            self.leftButton.setTitle("Save", for: UIControlState())
-            self.rightButton.setTitle("Clear", for: UIControlState())
-        }
+//        if quantumList.count == 1 {
+//            quantumTextView.text = quantumList[0].note
+//            //set labels of buttons for viewing quanta
+//            self.leftButton.setTitle("Save", for: UIControlState())
+//            self.rightButton.setTitle("Clear", for: UIControlState())
+//        }
         
         //reload tableview
         quantumListTableView.reloadData()
@@ -188,7 +199,10 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             let quantum = Quantum(id: UUID().uuidString.lowercased() , userID: "333333", note: self.quantumTextView.text, dateCreated: self.getDateNowInString(), dateUpdated: self.getDateNowInString(), deleted: false)
             
             quantumDB.insertQuantumToLocalDB(withQuantum: quantum)
-            quantumList.insert(quantum, at: 0)
+            //clear array of quanta
+            quantumList.removeAll()
+            quantumList.append(quantum)
+            quantumIndex = 0
             quantumListTableView.reloadData()
             //button.setTitle("Quantum Added", forState: .Normal)
             self.leftButton.setTitle("Save", for: UIControlState())
@@ -204,9 +218,12 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     
     //Function to add quantum to local DB
     func updateQuantum() {
+        print("update quantum funciton: quantum index is \(quantumIndex)" )
+        
         let q = quantumList[quantumIndex]
         q.note = self.quantumTextView.text
         q.dateUpdated = self.getDateNowInString()
+        
         quantumDB.updateQuantumInLocalDB(withQuantum: q)
         //reload tableview
         quantumListTableView.reloadData()
@@ -215,10 +232,13 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     //Function executed when left swipe over UITextView is detected
     //  it clears the text from the UITextview, and resets labels of buttons
     func clearUITextView(_ sender:UITapGestureRecognizer) {
+        print("cleared screen")
         //clear text in UITextView
         self.quantumTextView.text = ""
         self.returnedPressed = 0
         self.quantumState = QuantumState.adding
+        self.quantumList.removeAll()
+        quantumListTableView.reloadData()
         //reset labels of buttons
         leftButton.setTitle("Search", for: UIControlState())
         rightButton.setTitle("Add", for: UIControlState())
@@ -261,7 +281,6 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
      
         //convert date to string
         return dateFormatter.string(from: dateNow)
-        
     }
 
     
