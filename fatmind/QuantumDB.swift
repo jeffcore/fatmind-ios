@@ -29,12 +29,15 @@ class QuantumDB {
             print("connected to db")
             
             if !userDefaults.bool(forKey: "hasLaunchedOnce") {
+                self.userDefaults.set(true, forKey: "hasLaunchedOnce")
+                self.userDefaults.set(0, forKey: "counterSync")
+                self.userDefaults.set(0, forKey: "clientCounterLastSync")
+                self.userDefaults.set(0, forKey: "serverCounterLastSync")
+                //self.setDateLastImportUserDefault(0.0)
+                //self.setDateLastSyncToServerUserDefault(withSecondsToAdd: 0.0)
+                print("user defaults set")
+
                 if createDB() {
-                    self.userDefaults.set(true, forKey: "hasLaunchedOnce")
-                    self.userDefaults.set(0, forKey: "clientCounterLastSync")
-                    self.userDefaults.set(0, forKey: "serverCounterLastSync")
-                    self.setDateLastImportUserDefault(0.0)
-                    self.setDateLastSyncToServerUserDefault(withSecondsToAdd: 0.0)
                     print("database created")
                     return true
                 } else {
@@ -62,7 +65,7 @@ class QuantumDB {
         let createSQL = "CREATE TABLE IF NOT EXISTS quantum(" +
             "id TEXT," +
             "note TEXT, date_created TEXT, date_updated TEXT," +
-            "updated INT, deleted INT, new INT);"
+            "updated INT, deleted INT, new INT, counter_sync INT);"
     
         return sqlite3Exec(sqlCommand: createSQL, description: "quantum table")
         
@@ -131,7 +134,7 @@ class QuantumDB {
     // the code in this function only calls the API and loads the data into an NSArray
     // then it sends the Quantum NSArray to the loadDataToDB() function
     public func runInitialDataLoad(_ callback: @escaping (Bool) -> ()) {
-        print("QuantumDB.swift: run initialDataLoad Function in  QuantumDB.swift")
+        print("QuantumDB.swift: runInitialDataLoad Function in  QuantumDB.swift")
         
         //import initial data to sqlite3 full text search virtual table
         service.getQuantamAll{
@@ -146,7 +149,7 @@ class QuantumDB {
                 print("status code erorr \(statusCode)")
                 //update user defaults
                 self.userDefaults.set(true, forKey: "databaseImported")
-                self.setDateLastImportUserDefault(5.0)
+                //self.setDateLastImportUserDefault(5.0)
                // self.setDateLastSyncToServerUserDefault(withSecondsToAdd: 5.0)
 
                 callback(true)
@@ -160,38 +163,50 @@ class QuantumDB {
     
     //loads quantum changes from API service
     public func syncFromServer(_ callback: @escaping (Bool) -> ()) {
-        print("QuantumDB.swift: running function runLoadNewData in QuantumDB")
+        print("QuantumDB.swift: running function syncFromServer in QuantumDB")
         //get the date of last data import
-        if let dateLastDatabaseImported = userDefaults.string(forKey: "dateLastDatabaseImported") {
-            //copy new quantum from local SQLite DB to Master DB
-            print("QuantumDB.swift: running function copyNewQuantamToMasterDB")
-            service.getSyncFromServer(withDateOfLastUpdate: dateLastDatabaseImported) {
-                (statusCode, response) in
-
-                //    print("data returned from getDataAfterDate fucntion in QuantumDB \(response["data"]! as! NSArray)")
-                //check if api call was successful
-                if statusCode == 200 {
-                    //convert data from API JSON data into NSArrays
-                    if let quantums = response["data"] as? NSArray {
-                        print("QuantumDB.swift: quantumcount from \(quantums.count)")
-                        if quantums.count > 0 {
-                            //Load NSArray of Quantums into SQLite DB
-                            print("QuantumDB.swift: calling called APIService.getQuantumCreatedAfterDate - response there was something")
-                            print(quantums)
-                            self.syncInsertUpdateDataToDB(withNSArray: quantums)
+        //copy new quantum from local SQLite DB to Master DB
+        print("QuantumDB.swift: running function service.getSyncFromServer in APIService.swift")
+        service.getSyncFromServer(byServerSyncCounter: self.getServerCounterSyncLocal()) {
+            (statusCode, response) in
+            
+            //    print("data returned from getDataAfterDate fucntion in QuantumDB \(response["data"]! as! NSArray)")
+            //check if api call was successful
+            if statusCode == 200 {
+                //convert data from API JSON data into NSArrays
+                if let quantums = response["data"] as? NSArray {
+                    print("QuantumDB.swift: number of quantums found \(quantums.count)")
+                    if quantums.count > 0 {
+                        //Load NSArray of Quantums into SQLite DB
+                        print(quantums)
+                        
+                        self.syncInsertUpdateDataToDB(withNSArray: quantums)
+                        
+                        print("QuantumDB.swift: running function service.getServerCounterLastSync from APIService.swift")
+                        self.service.getServerCounterLastSync{
+                            (statusCode, response) in
+                            print("service.getServerCounterLastSync response")
+                            print(response)
+                            if let counter = response["data"] as? NSDictionary {
+                                print("this is the counter inside syncFromServer")
+                                if let count =  counter["counter"] as? Int {
+                                    self.setServerCounterSync(withCounter: count)
+                                }
+                                
+                            } else {
+                                print("service.getServerCounterLastSync response error")
+                            }
+                            
                         }
+
                     }
-                    callback(true)
-                } else {
-                    callback(false)
+                   
                 }
+                callback(true)
+            } else {
+               
+                callback(false)
             }
-        } else {
-            //if for some reason there is no date - reset dateLastDatabaseImported user
-            //  default with current date
-            print("set new date")
-            self.setDateLastImportUserDefault(5.0)
-            callback(false)
         }
     }
 
@@ -203,7 +218,7 @@ class QuantumDB {
         service.postSyncToServer(withQuantumList: qList) {
             (statusCode, response) in
             
-            print(response["message"])
+            print(response["message"]!)
             print("update file sent to master db")
             callback(true)
         }
@@ -246,7 +261,7 @@ class QuantumDB {
         
         var queryStatement: OpaquePointer? = nil
         let queryStatementString = "SELECT id, note, deleted FROM quantum" +
-        " WHERE date_updated > ? ;"
+        " WHERE date_updated > ?;"
         
         if sqlite3_prepare_v2(db, queryStatementString, -1, &queryStatement, nil) == SQLITE_OK {
             
@@ -277,7 +292,7 @@ class QuantumDB {
                     dateUpdated = dateLastDatabaseImported
                 }
                 
-                let loadQ = Quantum(id: id, userID: nil, note: note, dateCreated: nil, dateUpdated: dateUpdated, deleted: false)
+                let loadQ = Quantum(id: id, userID: nil, note: note, dateCreated: nil, dateUpdated: dateUpdated, deleted: false, counterSync: 0)
                 
                 quantumList.append(loadQ)
                 
@@ -294,6 +309,62 @@ class QuantumDB {
         return quantumList
     
     }
+    
+    
+    //  print all quamtum to console
+    public func getAllQuantum() -> [Quantum] {
+        print("PRINTING ALL QUANTUM TO CONSOLE:")
+
+        var quantumList = [Quantum]()
+        
+        var queryStatement: OpaquePointer? = nil
+        let queryStatementString = "SELECT id, note, date_created FROM quantum ORDER BY date_created DESC;"
+        
+        if sqlite3_prepare_v2(db, queryStatementString, -1, &queryStatement, nil) == SQLITE_OK {
+            
+            var id = ""
+            var note = ""
+            var dateCreated = ""
+            
+            while (sqlite3_step(queryStatement) == SQLITE_ROW) {
+                
+                if let queryResult0 = sqlite3_column_text(queryStatement, 0) {
+                    id = String(cString: queryResult0)
+                } else {
+                    id = ""
+                }
+                
+                if let queryResult1 = sqlite3_column_text(queryStatement, 1) {
+                    note = String(cString: queryResult1)
+                } else {
+                    note = ""
+                }
+                
+                if let queryResult2 = sqlite3_column_text(queryStatement, 2) {
+                    dateCreated = String(cString: queryResult2)
+                } else {
+                    dateCreated = ""
+                }
+
+            
+                let loadQ = Quantum(id: id, userID: nil, note: note, dateCreated: dateCreated, dateUpdated: nil, deleted: false, counterSync: 0)
+                
+                quantumList.append(loadQ)
+                
+                print("\(id) \n \(dateCreated) \n \(note)\n\n ------------------------------------------------------")
+                
+                
+            }
+        } else {
+            print("SELECT statement could not be prepared")
+        }
+        
+        sqlite3_finalize(queryStatement)
+        
+        return quantumList
+        
+    }
+    
     
     
     //Function takes any Quantum NSArray and inserts it into the SQLite3 DB
@@ -377,7 +448,7 @@ class QuantumDB {
                     note = ""
                 }
                                 
-                let loadQ = Quantum(id: id, userID: nil, note: note, dateCreated: dateCreated, dateUpdated: nil, deleted: false)
+                let loadQ = Quantum(id: id, userID: nil, note: note, dateCreated: dateCreated, dateUpdated: nil, deleted: false, counterSync: 0)
                 quantumList.append(loadQ)
                 
                 print("Query Result:")
@@ -404,8 +475,8 @@ class QuantumDB {
         
         var insertStatement: OpaquePointer? = nil
         
-        let insertStatementString = "INSERT INTO quantum (id, note, date_created, date_updated)" +
-        "VALUES (?, ?, ?, ?);"
+        let insertStatementString = "INSERT INTO quantum (id, note, date_created, date_updated, counter_sync)" +
+        "VALUES (?, ?, ?, ?, ?);"
         
         if sqlite3_prepare_v2(db, insertStatementString, -1, &insertStatement, nil) == SQLITE_OK {
             
@@ -415,7 +486,7 @@ class QuantumDB {
             sqlite3_bind_text(insertStatement, 2, (q.note! as NSString).utf8String, -1, nil)
             sqlite3_bind_text(insertStatement, 3, (q.dateCreated! as NSString).utf8String, -1, nil)
             sqlite3_bind_text(insertStatement, 4, (q.dateUpdated! as NSString).utf8String, -1, nil)
-            //sqlite3_bind_int(insertStatement, 5, Int32(q.newToInt))
+            sqlite3_bind_int(insertStatement, 5, Int32(q.counterSync))
             
             if sqlite3_step(insertStatement) == SQLITE_DONE {
                 print("Successfully inserted row.")
@@ -436,7 +507,7 @@ class QuantumDB {
     func updateQuantumInLocalDB(withQuantum q: Quantum) {
         
         var updateStatement: OpaquePointer? = nil
-        let updateStatementString = "UPDATE quantum SET note = ?, date_updated = ?" +
+        let updateStatementString = "UPDATE quantum SET note = ?, date_updated = ?, counter_sync = ?" +
             " WHERE id = ?;"
         
         if sqlite3_prepare_v2(db, updateStatementString, -1, &updateStatement, nil) == SQLITE_OK {
@@ -444,7 +515,8 @@ class QuantumDB {
             sqlite3_bind_text(updateStatement, 1, (q.note! as NSString).utf8String, -1, nil)
             sqlite3_bind_text(updateStatement, 2, (q.dateUpdated! as NSString).utf8String, -1, nil)
             sqlite3_bind_text(updateStatement, 3, (q.id! as NSString).utf8String, -1, nil)
-            
+            sqlite3_bind_int(updateStatement, 4, Int32(q.counterSync))
+
             if sqlite3_step(updateStatement) == SQLITE_DONE {
                 print("Successfully updated row.")
             } else {
@@ -530,73 +602,13 @@ class QuantumDB {
     
     // MARK: - Utility Functions
 
-    //sets the UserDefault for the Date the last time the local SQLite DB was updated from the Master DB
-    private func setDateLastImportUserDefault(_ addSeconds: Double)  {
-        //format date for API call to get new quantums since last visit
-        let dateNow = Date()
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z" //format style. Browse online to get a format that fits your needs.
-        
-        //dateFormatter.timeZone = NSTimeZone(abbreviation: "UTC");
-        //convert date to string
-        let dateNowString = dateFormatter.string(from: dateNow.addingTimeInterval(addSeconds))
-        //set the user default date
-        userDefaults.set(dateNowString, forKey: "dateLastDatabaseImported")
-    }
-    
-    //sets the UserDefault for the Date the last time the server DB was updated from iOS Device
-    private func setDateLastSyncToServerUserDefault(withSecondsToAdd addSeconds: Double)  {
-        //format date for API call to get new quantums since last visit
-        let dateNow = Date()
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z" //format style. Browse online to get a format that fits your needs.
-        
-        //dateFormatter.timeZone = NSTimeZone(abbreviation: "UTC");
-        //convert date to string
-        let dateNowString = dateFormatter.string(from: dateNow.addingTimeInterval(addSeconds))
-        //set the user default date
-        userDefaults.set(dateNowString, forKey: "dateLastSyncToServer")
-    }
-    
-    
-    
-    //Function to get current date
-    private func getSyncDateToString() -> String {
-        //format date for API call to get new quantums since last visit
-        
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
-        
-        let dateFormatter2 = DateFormatter()
-        dateFormatter2.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        
-        var date = Date()
-       
-        if let dateLastDatabaseImported = userDefaults.string(forKey: "dateLastDatabaseImported") {
-          print("userd date first date")
-          print(dateLastDatabaseImported)
-            
-          date = dateFormatter.date(from: dateLastDatabaseImported)!
-            
-        } else {
-            date = Date()
-        }
-        
-        print("getSynceDatetoString: secodn date ")
-        print(dateFormatter2.string(from: date))
-        
-        
-        //convert date to string
-        return dateFormatter2.string(from: date)
-   
-    }
     
     public func hasLaunchedOnce() -> Bool {
         if !userDefaults.bool(forKey: "hasLaunchedOnce") {
             self.userDefaults.set(true, forKey: "hasLaunchedOnce")
             
-            self.setDateLastImportUserDefault(0.0)
-            self.setDateLastSyncToServerUserDefault(withSecondsToAdd: 0.0)
+            //self.setDateLastImportUserDefault(0.0)
+            //self.setDateLastSyncToServerUserDefault(withSecondsToAdd: 0.0)
             
             
             print("database not imported")
@@ -605,8 +617,6 @@ class QuantumDB {
             return true
         }
     }
-    
-    
     
     //check if initial (first time import) of data has happened
     //  stored in databaseImported user default
@@ -623,25 +633,152 @@ class QuantumDB {
         }
     }
     
+    public func incrementCounterSync() {
+        let counter = self.userDefaults.integer(forKey: "counterSync")
+      
+        self.userDefaults.set(counter + 1, forKey: "counterSync")
+        print(counter)
+    }
+    
+    public func incrementClientCounterSync() {
+        let counter = self.userDefaults.integer(forKey: "clientCounterSync")
+        
+        self.userDefaults.set(counter + 1, forKey: "clientCounterSync")
+        print(counter)
+    }
+
    
+
+    public func setServerCounterSync(withCounter count: Int) {
+        print("setting servicer counter sync")
+        let counter = self.userDefaults.integer(forKey: "serverCounterLastSync")
+        print("serverCounterLastSync before change \(counter)")
+        self.userDefaults.set(count, forKey: "serverCounterLastSync")
+        print("serverCounterLastSync after change \(count)")
+    }
+
+    public func getCounterSync() -> Int {
+        let counter = self.userDefaults.integer(forKey: "counterSync")
+        
+        return counter
+    }
     
     
+    public func getServerCounterSyncLocal() -> Int {
+        let counter = self.userDefaults.integer(forKey: "serverCounterLastSync")
+        
+        return counter
+    }
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    public func getClientCounterSync() -> Int {
+        let counter = self.userDefaults.integer(forKey: "clientCounterLastSync")
+        
+        return counter
+    }
+
     
     //   MARK: TO BE DELETED
     
+//    //sets the UserDefault for the Date the last time the local SQLite DB was updated from the Master DB
+//    private func setDateLastImportUserDefault(_ addSeconds: Double)  {
+//        //format date for API call to get new quantums since last visit
+//        let dateNow = Date()
+//        let dateFormatter = DateFormatter()
+//        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z" //format style. Browse online to get a format that fits your needs.
+//        
+//        //dateFormatter.timeZone = NSTimeZone(abbreviation: "UTC");
+//        //convert date to string
+//        let dateNowString = dateFormatter.string(from: dateNow.addingTimeInterval(addSeconds))
+//        //set the user default date
+//        userDefaults.set(dateNowString, forKey: "dateLastDatabaseImported")
+//    }
+//    
+//    //sets the UserDefault for the Date the last time the server DB was updated from iOS Device
+//    private func setDateLastSyncToServerUserDefault(withSecondsToAdd addSeconds: Double)  {
+//        //format date for API call to get new quantums since last visit
+//        let dateNow = Date()
+//        let dateFormatter = DateFormatter()
+//        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z" //format style. Browse online to get a format that fits your needs.
+//        
+//        //dateFormatter.timeZone = NSTimeZone(abbreviation: "UTC");
+//        //convert date to string
+//        let dateNowString = dateFormatter.string(from: dateNow.addingTimeInterval(addSeconds))
+//        //set the user default date
+//        userDefaults.set(dateNowString, forKey: "dateLastSyncToServer")
+//    }
+//    
+//    
+//    
+    //Function to get current date
+    private func getSyncDateToString() -> String {
+        //format date for API call to get new quantums since last visit
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
+        
+        let dateFormatter2 = DateFormatter()
+        dateFormatter2.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        
+        var date = Date()
+        
+        if let dateLastDatabaseImported = userDefaults.string(forKey: "dateLastDatabaseImported") {
+            print("userd date first date")
+            print(dateLastDatabaseImported)
+            
+            date = dateFormatter.date(from: dateLastDatabaseImported)!
+            
+        } else {
+            date = Date()
+        }
+        
+        print("getSynceDatetoString: secodn date ")
+        print(dateFormatter2.string(from: date))
+        
+        
+        //convert date to string
+        return dateFormatter2.string(from: date)
+        
+    }
+//
+//    
     
+//    //loads quantum changes from API service
+//    public func syncFromServer(_ callback: @escaping (Bool) -> ()) {
+//        print("QuantumDB.swift: running function runLoadNewData in QuantumDB")
+//        //get the date of last data import
+//        if let dateLastDatabaseImported = userDefaults.string(forKey: "dateLastDatabaseImported") {
+//            //copy new quantum from local SQLite DB to Master DB
+//            print("QuantumDB.swift: running function copyNewQuantamToMasterDB")
+//            service.getSyncFromServer(withDateOfLastUpdate: dateLastDatabaseImported) {
+//                (statusCode, response) in
+//                
+//                //    print("data returned from getDataAfterDate fucntion in QuantumDB \(response["data"]! as! NSArray)")
+//                //check if api call was successful
+//                if statusCode == 200 {
+//                    //convert data from API JSON data into NSArrays
+//                    if let quantums = response["data"] as? NSArray {
+//                        print("QuantumDB.swift: quantumcount from \(quantums.count)")
+//                        if quantums.count > 0 {
+//                            //Load NSArray of Quantums into SQLite DB
+//                            print("QuantumDB.swift: calling called APIService.getQuantumCreatedAfterDate - response there was something")
+//                            print(quantums)
+//                            self.syncInsertUpdateDataToDB(withNSArray: quantums)
+//                        }
+//                    }
+//                    callback(true)
+//                } else {
+//                    callback(false)
+//                }
+//            }
+//        } else {
+//            //if for some reason there is no date - reset dateLastDatabaseImported user
+//            //  default with current date
+//            print("set new date")
+//            self.setDateLastImportUserDefault(5.0)
+//            callback(false)
+//        }
+//    }
+
     
     //    //runs loading of Master DB into local SQLite DB for the first time
     //    public func runInitialDataLoad(callback: (Bool) -> ()) {

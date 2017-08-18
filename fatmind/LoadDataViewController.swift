@@ -31,33 +31,62 @@ class LoadDataViewController: UIViewController {
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        //run the initial data import
+        //db not imported so run the initial data import
         if quantumDB.openDB() {
             service.getIsServiceAlive {
                 (status) in
                 if status {
-                    self.quantumDB.runInitialDataLoad {
-                        (status) in
+//                    self.quantumDB.runInitialDataLoad {
+//                        (status) in
+//                        if status {
+//                            print("data successfully imported")
+//                            self.quantumDB.syncToServer{
+//                                (status) in
+//                                
+//                                if status {
+//                                    print("data successfully synced to server")
+//                                } else {
+//                                    print("problem syncing data to server")
+//                                }
+//                                
+//                                DispatchQueue.main.async{
+//                                    self.performSegue(withIdentifier: "SegueToMainVC", sender: self)
+//                                }
+//                            }
+//                        } else {
+//                            print("problem importing database")
+//                        }                        
+//                    }
+                    
+                    print("AppDelegate.swift: quantumDB.syncToServer ")
+
+                    self.quantumDB.syncFromServer {
+                    (status) in
+                        print("AppDelegate.swift: quantumDB.syncFromServer return status - \(status)")
                         if status {
-                            print("data successfully imported")
-                            self.quantumDB.syncToServer{
-                                (status) in
-                                
-                                if status {
-                                    print("data successfully synced to server")
-                                } else {
-                                    print("problem syncing data to server")
-                                }
-                                
                                 DispatchQueue.main.async{
                                     self.performSegue(withIdentifier: "SegueToMainVC", sender: self)
                                 }
-                            }
+//                                quantumDB.syncToServer {
+//                                    (status) in
+//                                    if status {
+//                                        print("AppDelegate.swift: status of run quantumDB.syncToServer  call - \(status)")
+//                                    }
+//                                }
                         } else {
-                            print("problem importing database")
-                        }                        
+                            DispatchQueue.main.async{
+                                self.performSegue(withIdentifier: "SegueToMainVC", sender: self)
+                            }
+                        }
                     }
+                } else {
+                    DispatchQueue.main.async{
+                        self.performSegue(withIdentifier: "SegueToMainVC", sender: self)
+                    }
+                    print("no service")
                 }
+                    
+            
             }
         }
     }

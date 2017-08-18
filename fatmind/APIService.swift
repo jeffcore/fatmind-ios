@@ -12,11 +12,11 @@ class APIService {
     //static api key for app
     let apiKey = "aD7WrqSxV8ur7C59Ig6gf72O5El0mz04"
     //user api authentication token
-    let apiToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI1NjJmZDlkZjAxMjFjZGU4MjE0YmY1YTEiLCJ1c2VybmFtZSI6ImRyb3BhY2lkIiwicGFzc3dvcmQiOiIkMmEkMTAkdVByd3lvWW5xWjVWbkZUckZZS21iT2k2cVhWZjIyRHo3SXdiZG1PRE9vaDJwRm82VVNLQksiLCJlbWFpbCI6InJpeGVtcGlyZUBnbWFpbC5jb20iLCJfX3YiOjAsImNyZWF0ZWRPbiI6IjIwMTUtMTAtMjdUMjA6MDk6MDMuMDgxWiIsInF1YW50YSI6WyI1NjJmZjUwYjAxMjFjZGU4MjE0YmY1YTIiLCI1NjMwMmMyYjAxMjFjZGU4MjE0YmY1YWIiLCI1NjMwMmM1ZDAxMjFjZGU4MjE0YmY1YWMiLCI1NjMwMmM3ZjAxMjFjZGU4MjE0YmY1YWQiLCI1NjNiYjM4OTUxODYwNTlhMDA1ZmE1YjIiLCI1NjNiYjNjOTUxODYwNTlhMDA1ZmE1YjMiLCI1NjNiYjQ4NDUxODYwNTlhMDA1ZmE1YjQiLCI1NjNiYjUzNzFlMTliY2E0MDNmYTE1YWIiLCI1NjNiYmIwODFlMTliY2E0MDNmYTE1YWQiXX0.xIh3qescatTScSVIXdZ27_DBy0GUE7A2RG3zLbv7eXk"
+    let apiToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyIkX18iOnsic3RyaWN0TW9kZSI6dHJ1ZSwic2VsZWN0ZWQiOnsicXVhbnRhIjowfSwiZ2V0dGVycyI6e30sIndhc1BvcHVsYXRlZCI6ZmFsc2UsImFjdGl2ZVBhdGhzIjp7InBhdGhzIjp7ImVtYWlsIjoiaW5pdCIsInBhc3N3b3JkIjoiaW5pdCIsInVzZXJuYW1lIjoiaW5pdCIsImNyZWF0ZWRPbiI6ImluaXQiLCJfX3YiOiJpbml0IiwiX2lkIjoiaW5pdCJ9LCJzdGF0ZXMiOnsiaWdub3JlIjp7fSwiZGVmYXVsdCI6e30sImluaXQiOnsiX192Ijp0cnVlLCJjcmVhdGVkT24iOnRydWUsImVtYWlsIjp0cnVlLCJwYXNzd29yZCI6dHJ1ZSwidXNlcm5hbWUiOnRydWUsIl9pZCI6dHJ1ZX0sIm1vZGlmeSI6e30sInJlcXVpcmUiOnt9fSwic3RhdGVOYW1lcyI6WyJyZXF1aXJlIiwibW9kaWZ5IiwiaW5pdCIsImRlZmF1bHQiLCJpZ25vcmUiXX19LCJpc05ldyI6ZmFsc2UsIl9tYXhMaXN0ZW5lcnMiOjAsIl9kb2MiOnsiY3JlYXRlZE9uIjoiMjAxNS0xMC0yN1QyMDowOTowMy4wODFaIiwiX192IjowLCJlbWFpbCI6InJpeGVtcGlyZUBnbWFpbC5jb20iLCJwYXNzd29yZCI6IiQyYSQxMCR1UHJ3eW9ZbnFaNVZuRlRyRllLbWJPaTZxWFZmMjJEejdJd2JkbU9ET29oMnBGbzZVU0tCSyIsInVzZXJuYW1lIjoiZHJvcGFjaWQiLCJfaWQiOiI1NjJmZDlkZjAxMjFjZGU4MjE0YmY1YTEifSwiX3ByZXMiOnsic2F2ZSI6W251bGwsbnVsbCxudWxsLG51bGxdfSwiX3Bvc3RzIjp7InNhdmUiOltdfSwiaWF0IjoxNTAyOTc3NDgwLCJleHAiOjE1MDMwMjA2ODB9.Km8ThoaGORyHVIapRBR3gleU54gu3ppzPc67OBiUCIc"
     //base url for api
     //let apiURL = "http://localhost:3000"
 
-    let apiURL = "http://192.168.25.101:3000"
+    let apiURL = "http://192.168.25.128:3000"
     
     init(){}
     
@@ -24,9 +24,11 @@ class APIService {
     
     //GET is api alive
     func getIsServiceAlive(_ callback: @escaping (Bool) -> ()) {
+        print("APIService.swift: getIsServiceAlive")
+
         let url = "\(apiURL)/api/areyoualive"
         
-        get(url){
+        get(withURL: url, withTimeout: 3){
             (statusCode, response) in
             print("status code \(statusCode)")
             
@@ -40,13 +42,15 @@ class APIService {
     
     //GET a list of all quanta
     func getQuantamAll(_ callback:@escaping (Int, NSDictionary) -> ()) {
+        print("APIService.swift: getQuantamAll")
+        
         let url = "\(apiURL)/api/quantum/all"
         
-        get(url, callback: callback)
+        get(withURL: url, withTimeout: 30, withCallback: callback)
     }
     
     //GET WITH PARAMS a list of quanta created after date
-    func getSyncFromServer(withDateOfLastUpdate date:String, callback:@escaping (Int, NSDictionary) -> ()) {
+    func getSyncFromServerByDate(withDateOfLastUpdate date:String, callback:@escaping (Int, NSDictionary) -> ()) {
         let url = "\(apiURL)/api/quantum/sync"
         let postParam  = "?datelastupdate=\(date)"
         
@@ -56,8 +60,27 @@ class APIService {
     }
     
     
+    //GET a list of all quanta
+    func getServerCounterLastSync(_ callback:@escaping (Int, NSDictionary) -> ()) {
+        print("APIService.swift: getServerCounterLastSync")
+        
+        let url = "\(apiURL)/api/countersync"
+        
+        get(withURL: url, withTimeout: 30, withCallback: callback)
+    }
+
     
-    
+    //GET WITH PARAMS a list of quanta created after date
+    func getSyncFromServer(byServerSyncCounter counter:Int, callback:@escaping (Int, NSDictionary) -> ()) {
+        let url = "\(apiURL)/api/quantum/sync"
+        let postParam  = "?counter=\(counter)"
+        
+        print("APIService.swift: getSyncFromServer  \(counter)")
+        //postWithParams(url, postParam:postParam, callback: callback)
+        self.getWithParams(url, params: postParam, callback: callback)
+    }
+
+    //POST Sync changes from client to server
     func postSyncToServer(withQuantumList qList: [Quantum], callback:@escaping (Int, NSDictionary) -> ()) {
         let url = "\(apiURL)/api/quantum/sync"
         if let postJSON = Quantum.quantumToJSON(quantumList: qList) {
@@ -66,8 +89,6 @@ class APIService {
             callback(0, ["0": "error converting quantum body to json"])
         }
     }
-
-    
     
 //  /// NOT USED
     //
@@ -122,18 +143,19 @@ class APIService {
     // MARK: - Generic API Calls
     
     //GET API Call
-    func get(_ url:String, callback:@escaping (Int, NSDictionary) -> ()) {
+    func get(withURL url:String, withTimeout time:Int, withCallback callback:@escaping (Int, NSDictionary) -> ()) {
         let request : NSMutableURLRequest = NSMutableURLRequest()
         request.url = URL(string: url)
         request.httpMethod = "GET"
         request.addValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.addValue(apiToken, forHTTPHeaderField: "x-access-token")
+        request.timeoutInterval = TimeInterval(time)
         //execute the request
         let task = URLSession.shared.dataTask(with: request as URLRequest) {
             data, response, error in
             
-            print("APIService.swift: get call  api error \(error)")
-            print("APIService.swift: get call api data \(data)")
+            print("APIService.swift: get call  api error \(String(describing: error))")
+            print("APIService.swift: get call api data \(String(describing: data))")
 
             //Check for connectivity
             if let e = error {
@@ -141,6 +163,8 @@ class APIService {
             } else {
                 let httpResponse = response as! HTTPURLResponse
                 let statusCode = httpResponse.statusCode
+                print("APIService: get request statuscode : \(statusCode)")
+                
                 //parse JSON to NSDictionary
                 do {
                     if let jsonResult = try (JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions.mutableContainers)) as? NSDictionary {
@@ -184,8 +208,8 @@ class APIService {
         let task = URLSession.shared.dataTask(with: request as URLRequest) {
             data, response, error in
             
-            print("APIService.swift: get call  api error \(error)")
-            print("APIService.swift: get call api data \(data)")
+            print("APIService.swift: get call  api error \(String(describing: error))")
+            print("APIService.swift: get call api data \(String(describing: data))")
             
             
             //Check for connectivity
@@ -194,6 +218,7 @@ class APIService {
             } else {
                 let httpResponse = response as! HTTPURLResponse
                 let statusCode = httpResponse.statusCode
+                print("APIService: getWithParams request statuscode : \(statusCode)")
                 //parse JSON to NSDictionary
                 do {
                     if let jsonResult = try (JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions.mutableContainers)) as? NSDictionary {
@@ -229,7 +254,7 @@ class APIService {
         //execute the request
         let task = URLSession.shared.dataTask(with: request as URLRequest) {
             data, response, error in
-            print(error)
+            print(error!)
             //check for connection error
             if let e = error {
                 callback(0, ["data" : e.localizedDescription ])

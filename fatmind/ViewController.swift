@@ -25,16 +25,18 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     var returnedPressed = 0
     var quantumIndex = 0
     var quantumState = QuantumState.adding
+    var counter = 0
    
     var quantumList = [Quantum]()
     let service = APIService()
     let quantumDB = QuantumDB()
+    var userDefaults:UserDefaults!
     
 // MARK: - ViewController Functions
 
     override func viewDidLoad() {
         super.viewDidLoad()
-       
+        userDefaults = UserDefaults.standard
         //self.hideKeyboardWhenTappedAround()
         self.quantumTextView.delegate = self
         
@@ -50,6 +52,14 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         self.quantumListTableView.register(UITableViewCell.self, forCellReuseIdentifier: basicCellIdentifier)
         self.quantumListTableView.delegate = self
         self.quantumListTableView.dataSource = self
+        
+        //saving every change in uitextview
+//        let notificationCenter = NotificationCenter.default
+//        notificationCenter.addObserver(self,
+//                                       selector: Selector(("textFieldDidChange:")),
+//                                       name: NSNotification.Name.UITextViewTextDidChange,
+//                                       object: nil)
+        
         
         //open and connect to db
         if quantumDB.openDB() {
@@ -81,11 +91,13 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     //2. opened existing quantum
     //     any keypress saves
     func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
-        print("return but pressed \(textView.text!)")
-      
-        let updatedString = (textView.text as NSString?)?.replacingCharacters(in: range, with: text)
-        self.quantumTextView.text = updatedString! as String
+        print("textchange before adding \(textView.text!)")
         
+        let updatedString = (textView.text as NSString?)?.replacingCharacters(in: range, with: text)
+       // self.quantumTextView.text = updatedString! as String
+       // self.quantumTextView.selectedRange = NSMakeRange(range.location + range.length + 1, 0)
+        
+        print("textchange after adding \(updatedString!)")
         
         if text == "\n" {
             
@@ -104,11 +116,11 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                 case .editing:
                     print("in editing return char")
                     //covers logic if return key is pressed in editing mode, just updates the quantum
-                    self.updateQuantum()
+                    self.updateQuantum(quantumText: nil)
                     self.returnedPressed = 0
             }
         } else {
-            self.quantumTextView.text = textView.text
+           // self.quantumTextView.text = textView.text
 
 
             switch quantumState {
@@ -123,12 +135,12 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             case .editing:
                 //updated if any other key is pressed while in editing mode
                 print("in editing other char")
-                self.updateQuantum()
+                self.updateQuantum(quantumText: updatedString)
                 self.returnedPressed = 0
             }
         }
         
-        return false
+        return true
     }
     
     
@@ -145,7 +157,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                 self.returnedPressed = 0
             } else {
                 //Update option
-                self.updateQuantum()
+                self.updateQuantum(quantumText: nil)
             }
         }
     }
@@ -173,6 +185,16 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     
 // MARK: - Homemade Functions
     
+    // Function text changed in the uitextview
+//    func textFieldDidChange(sender : AnyObject) {
+//            print("in text change notification")
+//            if quantumState == .editing {
+//                  self.updateQuantum()
+//            }
+//    }
+//    
+    
+    
     //Function that performs the quantum search
     func performQuantumSearch() {
         //clear array of quantam
@@ -196,9 +218,19 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     func addQuantum() {
         //Add Quantum option
         if self.quantumTextView.text.characters.count > 0 {
-            let quantum = Quantum(id: UUID().uuidString.lowercased() , userID: "333333", note: self.quantumTextView.text, dateCreated: self.getDateNowInString(), dateUpdated: self.getDateNowInString(), deleted: false)
+            counter = self.userDefaults.integer(forKey: "counterSync")
+            print("counter vefore insert")
+            print(counter)
+            let quantum = Quantum(id: UUID().uuidString.lowercased() ,
+                                  userID: "333333",
+                                  note: self.quantumTextView.text,
+                                  dateCreated: self.getDateNowInString(),
+                                  dateUpdated: self.getDateNowInString(),
+                                  deleted: false,
+                                  counterSync: counter)
             
             quantumDB.insertQuantumToLocalDB(withQuantum: quantum)
+            quantumDB.incrementCounterSync()
             //clear array of quanta
             quantumList.removeAll()
             quantumList.append(quantum)
@@ -217,14 +249,19 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     }
     
     //Function to add quantum to local DB
-    func updateQuantum() {
+    func updateQuantum(quantumText text:String?) {
         print("update quantum funciton: quantum index is \(quantumIndex)" )
-        
+        counter = self.userDefaults.integer(forKey: "counterSync")
         let q = quantumList[quantumIndex]
-        q.note = self.quantumTextView.text
+        if let qText = text {
+            q.note = qText
+        } else {
+            q.note = self.quantumTextView.text
+        }
         q.dateUpdated = self.getDateNowInString()
-        
+        q.counterSync = counter
         quantumDB.updateQuantumInLocalDB(withQuantum: q)
+        quantumDB.incrementCounterSync()
         //reload tableview
         quantumListTableView.reloadData()
     }

@@ -15,17 +15,19 @@ class Quantum {
     var dateCreated: String?
     var dateUpdated: String?
     var deleted: Bool = false
+    var counterSync: Int = 0
     var deletedToInt: Int {
         return self.deleted ? 1 : 0
     }
     
-    init(id: String, userID: String?, note: String?, dateCreated: String?, dateUpdated: String?, deleted: Bool) {
+    init(id: String, userID: String?, note: String?, dateCreated: String?, dateUpdated: String?, deleted: Bool, counterSync: Int) {
         self.id = id
         self.userID = userID
         self.note = note
         self.dateCreated = dateCreated
         self.dateUpdated = dateUpdated
         self.deleted = deleted
+        self.counterSync = counterSync
     }
     
     //initialize with an AnyObject - this is used with the data returned from the api calls
@@ -85,7 +87,7 @@ class Quantum {
         } catch {
             noteNSData = nil
         }
-        print("contents of noteToJSON \(noteNSData)")
+        print("contents of noteToJSON \(String(describing: noteNSData))")
         return noteNSData
     }
     
@@ -110,7 +112,7 @@ class Quantum {
             quantumJSON = nil
         }
         
-        print(String(data: quantumJSON!, encoding: String.Encoding.utf8))
+        print(String(data: quantumJSON!, encoding: String.Encoding.utf8)!)
         return quantumJSON
     }
     
