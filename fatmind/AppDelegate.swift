@@ -60,13 +60,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                     print("AppDelegate.swift: quantumDB.syncFromServer return status - \(status)")
                                     if status {
                                         print("AppDelegate.swift: quantumDB.syncToServer ")
-        //
-        //                                quantumDB.syncToServer {
-        //                                    (status) in
-        //                                    if status {
-        //                                        print("AppDelegate.swift: status of run quantumDB.syncToServer  call - \(status)")
-        //                                    }
-        //                                }
+        
+                                        quantumDB.syncToServer {
+                                            (status) in
+                                            if status {
+                                                print("AppDelegate.swift: status of run quantumDB.syncToServer  call - \(status)")
+                                            }
+                                        }
                                     }
                                 }
                     } else {

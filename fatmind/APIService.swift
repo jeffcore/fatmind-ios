@@ -18,7 +18,7 @@ class APIService {
     //base url for api
     //let apiURL = "http://localhost:3000"
 
-    let apiURL = "http://192.168.25.113:3000"
+    let apiURL = "http://192.168.25.31:3000"
     
     init(){}
     
