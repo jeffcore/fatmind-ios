@@ -12,11 +12,13 @@ class APIService {
     //static api key for app
     let apiKey = "aD7WrqSxV8ur7C59Ig6gf72O5El0mz04"
     //user api authentication token
-    let apiToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyIkX18iOnsic3RyaWN0TW9kZSI6dHJ1ZSwic2VsZWN0ZWQiOnsicXVhbnRhIjowfSwiZ2V0dGVycyI6e30sIndhc1BvcHVsYXRlZCI6ZmFsc2UsImFjdGl2ZVBhdGhzIjp7InBhdGhzIjp7ImVtYWlsIjoiaW5pdCIsInBhc3N3b3JkIjoiaW5pdCIsInVzZXJuYW1lIjoiaW5pdCIsImNyZWF0ZWRPbiI6ImluaXQiLCJfX3YiOiJpbml0IiwiX2lkIjoiaW5pdCJ9LCJzdGF0ZXMiOnsiaWdub3JlIjp7fSwiZGVmYXVsdCI6e30sImluaXQiOnsiX192Ijp0cnVlLCJjcmVhdGVkT24iOnRydWUsImVtYWlsIjp0cnVlLCJwYXNzd29yZCI6dHJ1ZSwidXNlcm5hbWUiOnRydWUsIl9pZCI6dHJ1ZX0sIm1vZGlmeSI6e30sInJlcXVpcmUiOnt9fSwic3RhdGVOYW1lcyI6WyJyZXF1aXJlIiwibW9kaWZ5IiwiaW5pdCIsImRlZmF1bHQiLCJpZ25vcmUiXX19LCJpc05ldyI6ZmFsc2UsIl9tYXhMaXN0ZW5lcnMiOjAsIl9kb2MiOnsiY3JlYXRlZE9uIjoiMjAxNS0xMC0yN1QyMDowOTowMy4wODFaIiwiX192IjowLCJlbWFpbCI6InJpeGVtcGlyZUBnbWFpbC5jb20iLCJwYXNzd29yZCI6IiQyYSQxMCR1UHJ3eW9ZbnFaNVZuRlRyRllLbWJPaTZxWFZmMjJEejdJd2JkbU9ET29oMnBGbzZVU0tCSyIsInVzZXJuYW1lIjoiZHJvcGFjaWQiLCJfaWQiOiI1NjJmZDlkZjAxMjFjZGU4MjE0YmY1YTEifSwiX3ByZXMiOnsic2F2ZSI6W251bGwsbnVsbCxudWxsLG51bGxdfSwiX3Bvc3RzIjp7InNhdmUiOltdfSwiaWF0IjoxNTAyOTc3NDgwLCJleHAiOjE1MDMwMjA2ODB9.Km8ThoaGORyHVIapRBR3gleU54gu3ppzPc67OBiUCIc"
+    let apiToken = UserDefaults.standard.string(forKey: "token") ?? ""
+
+     
     //base url for api
     //let apiURL = "http://localhost:3000"
 
-    let apiURL = "http://192.168.25.128:3000"
+    let apiURL = "http://192.168.25.113:3000"
     
     init(){}
     
@@ -84,10 +86,30 @@ class APIService {
     func postSyncToServer(withQuantumList qList: [Quantum], callback:@escaping (Int, NSDictionary) -> ()) {
         let url = "\(apiURL)/api/quantum/sync"
         if let postJSON = Quantum.quantumToJSON(quantumList: qList) {
-            postWithJSON(url, postData: postJSON as Data, callback: callback)
+            postWithJSON(withURL: url, postData: postJSON as Data, callback: callback)
         } else {
             callback(0, ["0": "error converting quantum body to json"])
         }
+    }
+    
+    func loginUser(callback:@escaping(Int, NSDictionary) -> ())
+    {
+        let url = "\(apiURL)/api/login"
+        var quantumDictionary = [String: String]()
+        
+        var quantumJSON : Data?
+        
+        // var quantumData: Dictionary<String, String>
+        
+        quantumDictionary = ["email": "rixempire@gmail.com", "password": "553399"]
+        
+        do {
+            quantumJSON = try JSONSerialization.data(withJSONObject: quantumDictionary, options: [])
+        } catch {
+            quantumJSON = nil
+        }
+        print("apr token \(apiToken)")
+        self.postWithJSON(withURL: url, postData: quantumJSON!, callback: callback)
     }
     
 //  /// NOT USED
@@ -237,24 +259,23 @@ class APIService {
 
     
     //Post With PARAMS API Call using Form Post
-    func postWithParams(_ url: String, postParam: String, callback: @escaping (Int, NSDictionary) -> ()) {
+    func postWithParams(withURL url: String, withParams postParam: String, withCallBack callback: @escaping (Int, NSDictionary) -> ()) {
         //encode params
-        let postData:Data = postParam.data(using: String.Encoding.ascii)!
-        let postLength:NSString = String( postData.count) as NSString
-        print("post params data \(postData)")
+        let expectedCharSet = CharacterSet.urlQueryAllowed
+        let encodedParams = postParam.addingPercentEncoding(withAllowedCharacters: expectedCharSet)!
+        //combine url with parameters
+        let fullURL = url + encodedParams
+       
         //create http request
         let request : NSMutableURLRequest = NSMutableURLRequest()
-        request.url = URL(string: url)
+        request.url = URL(string: fullURL)
         request.httpMethod = "POST"
-        request.httpBody = postData
-        request.setValue(postLength as String, forHTTPHeaderField: "Content-Length")
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.addValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.addValue(apiToken, forHTTPHeaderField: "x-access-token")
         //execute the request
         let task = URLSession.shared.dataTask(with: request as URLRequest) {
             data, response, error in
-            print(error!)
             //check for connection error
             if let e = error {
                 callback(0, ["data" : e.localizedDescription ])
@@ -279,7 +300,7 @@ class APIService {
     }
 
     //POST API Call with JSON httpBody
-    func postWithJSON(_ url: String, postData: Data, callback: @escaping (Int, NSDictionary) -> ()) {
+    func postWithJSON(withURL url: String, postData: Data, callback: @escaping (Int, NSDictionary) -> ()) {
         //prepare post data for http body
         var postLength = "0"
         if let pLen = NSString(data: postData, encoding: String.Encoding.utf8.rawValue)?.length {

@@ -217,8 +217,8 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     //Function to add quantum to local DB
     func addQuantum() {
         //Add Quantum option
-        if self.quantumTextView.text.characters.count > 0 {
-            counter = self.userDefaults.integer(forKey: "counterSync")
+        if self.quantumTextView.text.count > 0 {
+            
             print("counter vefore insert")
             print(counter)
             let quantum = Quantum(id: UUID().uuidString.lowercased() ,
@@ -227,7 +227,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                                   dateCreated: self.getDateNowInString(),
                                   dateUpdated: self.getDateNowInString(),
                                   deleted: false,
-                                  counterSync: counter)
+                                  counterSync: quantumDB.getCounterSync())
             
             quantumDB.insertQuantumToLocalDB(withQuantum: quantum)
             quantumDB.incrementCounterSync()
@@ -251,24 +251,24 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     //Function to add quantum to local DB
     func updateQuantum(quantumText text:String?) {
         print("update quantum funciton: quantum index is \(quantumIndex)" )
-        counter = self.userDefaults.integer(forKey: "counterSync")
-        let q = quantumList[quantumIndex]
+        let q = self.quantumList[quantumIndex]
         if let qText = text {
             q.note = qText
         } else {
             q.note = self.quantumTextView.text
         }
         q.dateUpdated = self.getDateNowInString()
-        q.counterSync = counter
-        quantumDB.updateQuantumInLocalDB(withQuantum: q)
-        quantumDB.incrementCounterSync()
+        q.counterSync = self.quantumDB.getCounterSync()
+        print("updateQuantum: counterSyncValue \(q.counterSync)")
+        self.quantumDB.updateQuantumInLocalDB(withQuantum: q)
+        self.quantumDB.incrementCounterSync()
         //reload tableview
         quantumListTableView.reloadData()
     }
     
     //Function executed when left swipe over UITextView is detected
     //  it clears the text from the UITextview, and resets labels of buttons
-    func clearUITextView(_ sender:UITapGestureRecognizer) {
+    @objc func clearUITextView(_ sender:UITapGestureRecognizer) {
         print("cleared screen")
         //clear text in UITextView
         self.quantumTextView.text = ""
@@ -369,7 +369,7 @@ extension UIViewController {
         view.addGestureRecognizer(tap)
     }
     
-    func dismissKeyboard() {
+    @objc func dismissKeyboard() {
         view.endEditing(true)
     }
 }

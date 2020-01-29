@@ -30,8 +30,8 @@ class QuantumDB {
             
             if !userDefaults.bool(forKey: "hasLaunchedOnce") {
                 self.userDefaults.set(true, forKey: "hasLaunchedOnce")
-                self.userDefaults.set(0, forKey: "counterSync")
-                self.userDefaults.set(0, forKey: "clientCounterLastSync")
+                self.userDefaults.set(1, forKey: "counterSync")
+                self.userDefaults.set(1, forKey: "clientCounterLastSync")
                 self.userDefaults.set(0, forKey: "serverCounterLastSync")
                 //self.setDateLastImportUserDefault(0.0)
                 //self.setDateLastSyncToServerUserDefault(withSecondsToAdd: 0.0)
@@ -130,36 +130,7 @@ class QuantumDB {
     
     //MARK: Syncing Functions
     
-    //runs loading of Master DB into local SQLite DB for the first time
-    // the code in this function only calls the API and loads the data into an NSArray
-    // then it sends the Quantum NSArray to the loadDataToDB() function
-    public func runInitialDataLoad(_ callback: @escaping (Bool) -> ()) {
-        print("QuantumDB.swift: runInitialDataLoad Function in  QuantumDB.swift")
-        
-        //import initial data to sqlite3 full text search virtual table
-        service.getQuantamAll{
-            (statusCode, response) in
-            //print(response["data"]! as! NSArray)
-            if statusCode == 200 {
-                if let quantums = response["data"] as? NSArray {
-                    self.insertNewDataToDB(quantums)
-                    print("json load")
-                    //print(quantums)
-                }
-                print("status code erorr \(statusCode)")
-                //update user defaults
-                self.userDefaults.set(true, forKey: "databaseImported")
-                //self.setDateLastImportUserDefault(5.0)
-               // self.setDateLastSyncToServerUserDefault(withSecondsToAdd: 5.0)
 
-                callback(true)
-            } else {
-                print("status code erorr \(statusCode)")
-                self.userDefaults.set(true, forKey: "databaseImported")
-                callback(false)
-            }
-        }
-    }
     
     //loads quantum changes from API service
     public func syncFromServer(_ callback: @escaping (Bool) -> ()) {
@@ -181,7 +152,7 @@ class QuantumDB {
                         print(quantums)
                         
                         self.syncInsertUpdateDataToDB(withNSArray: quantums)
-                        
+                        self.userDefaults.set(true, forKey: "databaseImported")
                         print("QuantumDB.swift: running function service.getServerCounterLastSync from APIService.swift")
                         self.service.getServerCounterLastSync{
                             (statusCode, response) in
@@ -220,7 +191,9 @@ class QuantumDB {
             
             print(response["message"]!)
             print("update file sent to master db")
+            self.setClientCounterLastSync()
             callback(true)
+            
         }
         callback(true)
 
@@ -244,7 +217,6 @@ class QuantumDB {
             }
             
             if self.checkIfQuantumExistsInLocalDB(withQuantum: quantum) {
-                //quantum.updated = false
                 self.updateQuantumInLocalDB(withQuantum: quantum)
             } else {
                 self.insertQuantumToLocalDB(withQuantum: quantum)
@@ -257,20 +229,22 @@ class QuantumDB {
     // MARK: - SQLite DB Functions
     
     public func getLocalChanges() -> [Quantum] {
+        print("QuantumDB - getLocalChanges() function call")
         var quantumList = [Quantum]()
         
         var queryStatement: OpaquePointer? = nil
-        let queryStatementString = "SELECT id, note, deleted FROM quantum" +
-        " WHERE date_updated > ?;"
+        let queryStatementString = "SELECT id, note, deleted, counter_sync FROM quantum" +
+        " WHERE counter_sync >= ?;"
         
         if sqlite3_prepare_v2(db, queryStatementString, -1, &queryStatement, nil) == SQLITE_OK {
             
-            sqlite3_bind_text(queryStatement, 1, (self.getSyncDateToString() as NSString).utf8String, -1, nil)
-            
+            //sqlite3_bind_text(queryStatement, 1, (self.getSyncDateToString() as NSString).utf8String, -1, nil)
+            sqlite3_bind_int(queryStatement, 1, Int32(self.getClientCounterSync()))
+
             var id = ""
             var note = ""
-            var dateUpdated =  ""
             var deleted : Int32 = 0
+            var counter : Int32 = 0
             
             while (sqlite3_step(queryStatement) == SQLITE_ROW) {
                 
@@ -286,18 +260,16 @@ class QuantumDB {
                     note = ""
                 }
                 
-                deleted = sqlite3_column_int(queryStatement, 3)
-                
-                if let dateLastDatabaseImported = userDefaults.string(forKey: "dateLastDatabaseImported") {
-                    dateUpdated = dateLastDatabaseImported
-                }
-                
-                let loadQ = Quantum(id: id, userID: nil, note: note, dateCreated: nil, dateUpdated: dateUpdated, deleted: false, counterSync: 0)
+                deleted = sqlite3_column_int(queryStatement, 2)
+
+                counter = sqlite3_column_int(queryStatement, 3)
+
+                let loadQ = Quantum(id: id, userID: nil, note: note, dateCreated: nil, dateUpdated: nil, deleted: false, counterSync: 0)
                 
                 quantumList.append(loadQ)
                 
-                print("Query Result:")
-                print("\(id) | \(note) | \(dateUpdated) | \(deleted)")
+                print("Query Result from getLocalChange - syncToServer:")
+                print("\(id) | \(note) | counter: \(counter) | \(deleted)")
                 
             }
         } else {
@@ -514,9 +486,9 @@ class QuantumDB {
           
             sqlite3_bind_text(updateStatement, 1, (q.note! as NSString).utf8String, -1, nil)
             sqlite3_bind_text(updateStatement, 2, (q.dateUpdated! as NSString).utf8String, -1, nil)
-            sqlite3_bind_text(updateStatement, 3, (q.id! as NSString).utf8String, -1, nil)
-            sqlite3_bind_int(updateStatement, 4, Int32(q.counterSync))
-
+            sqlite3_bind_int(updateStatement, 3, Int32(q.counterSync))
+            sqlite3_bind_text(updateStatement, 4, (q.id! as NSString).utf8String, -1, nil)
+            
             if sqlite3_step(updateStatement) == SQLITE_DONE {
                 print("Successfully updated row.")
             } else {
@@ -650,12 +622,21 @@ class QuantumDB {
    
 
     public func setServerCounterSync(withCounter count: Int) {
-        print("setting servicer counter sync")
+        print("setting server counter last sync")
         let counter = self.userDefaults.integer(forKey: "serverCounterLastSync")
         print("serverCounterLastSync before change \(counter)")
         self.userDefaults.set(count, forKey: "serverCounterLastSync")
         print("serverCounterLastSync after change \(count)")
     }
+    
+    public func setClientCounterLastSync() {
+        print("setting client counter last sync")
+        let counter = self.getCounterSync()
+        self.userDefaults.set(counter, forKey: "clientCounterLastSync")
+        print("client counter last sync set to \(counter)")
+        
+    }
+    
 
     public func getCounterSync() -> Int {
         let counter = self.userDefaults.integer(forKey: "counterSync")
@@ -678,6 +659,37 @@ class QuantumDB {
 
     
     //   MARK: TO BE DELETED
+    
+    //runs loading of Master DB into local SQLite DB for the first time
+    // the code in this function only calls the API and loads the data into an NSArray
+    // then it sends the Quantum NSArray to the loadDataToDB() function
+//    public func runInitialDataLoad(_ callback: @escaping (Bool) -> ()) {
+//        print("QuantumDB.swift: runInitialDataLoad Function in  QuantumDB.swift")
+//        
+//        //import initial data to sqlite3 full text search virtual table
+//        service.getQuantamAll{
+//            (statusCode, response) in
+//            //print(response["data"]! as! NSArray)
+//            if statusCode == 200 {
+//                if let quantums = response["data"] as? NSArray {
+//                    self.insertNewDataToDB(quantums)
+//                    print("json load")
+//                    //print(quantums)
+//                }
+//                print("status code erorr \(statusCode)")
+//                //update user defaults
+//                self.userDefaults.set(true, forKey: "databaseImported")
+//                //self.setDateLastImportUserDefault(5.0)
+//                // self.setDateLastSyncToServerUserDefault(withSecondsToAdd: 5.0)
+//                
+//                callback(true)
+//            } else {
+//                print("status code erorr \(statusCode)")
+//                self.userDefaults.set(true, forKey: "databaseImported")
+//                callback(false)
+//            }
+//        }
+//    }
     
 //    //sets the UserDefault for the Date the last time the local SQLite DB was updated from the Master DB
 //    private func setDateLastImportUserDefault(_ addSeconds: Double)  {

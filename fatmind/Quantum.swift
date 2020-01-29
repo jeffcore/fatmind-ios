@@ -30,6 +30,7 @@ class Quantum {
         self.counterSync = counterSync
     }
     
+    
     //initialize with an AnyObject - this is used with the data returned from the api calls
     //  the data format is an AnyObject[string, anyobject]
     init?(data: AnyObject){
@@ -101,7 +102,7 @@ class Quantum {
         var quantumData: Dictionary<String, String>
         
         for q in qList {
-            quantumData = ["id": q.id!, "note": q.note!, "deleted": String(q.deletedToInt), "dateUpdated": q.dateUpdated! ]
+            quantumData = ["id": q.id!, "note": q.note!, "deleted": String(q.deletedToInt)]
 
             quantumDictionary.append(quantumData)            
         }
