@@ -505,10 +505,7 @@ class QuantumDB {
         }
         
         sqlite3_finalize(updateStatement)
-
     }
-    
-    
     
     //DELETE new Quanta that have new field marked true
     func deleteQuantamFromLocalDB(_ q: Quantum) {
@@ -533,10 +530,6 @@ class QuantumDB {
 //            print("error")
 //        }
     }
-
-    
-    
-    
     
     //function that checks to see if a quantum exists in the local db
     public func checkIfQuantumExistsInLocalDB(withQuantum q: Quantum) -> Bool{
@@ -573,8 +566,6 @@ class QuantumDB {
     }
     
     // MARK: - Utility Functions
-
-    
     public func hasLaunchedOnce() -> Bool {
         if !userDefaults.bool(forKey: "hasLaunchedOnce") {
             self.userDefaults.set(true, forKey: "hasLaunchedOnce")
@@ -619,8 +610,6 @@ class QuantumDB {
         print(counter)
     }
 
-   
-
     public func setServerCounterSync(withCounter count: Int) {
         print("setting server counter last sync")
         let counter = self.userDefaults.integer(forKey: "serverCounterLastSync")
@@ -634,9 +623,7 @@ class QuantumDB {
         let counter = self.getCounterSync()
         self.userDefaults.set(counter, forKey: "clientCounterLastSync")
         print("client counter last sync set to \(counter)")
-        
     }
-    
 
     public func getCounterSync() -> Int {
         let counter = self.userDefaults.integer(forKey: "counterSync")
