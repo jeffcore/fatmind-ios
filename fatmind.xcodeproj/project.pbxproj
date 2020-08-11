@@ -19,6 +19,7 @@
 		0EAF30B01BFD803800EF6216 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0EAF30AF1BFD803800EF6216 /* Assets.xcassets */; };
 		0EAF30B31BFD803800EF6216 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0EAF30B11BFD803800EF6216 /* LaunchScreen.storyboard */; };
 		0ED89A771D9041C000CD721D /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 0ED89A761D9041C000CD721D /* libsqlite3.tbd */; };
+		DBAE20D824E1C30900206405 /* LoginViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAE20D724E1C30900206405 /* LoginViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -49,6 +50,7 @@
 		0EAF30B21BFD803800EF6216 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		0EAF30B41BFD803800EF6216 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0ED89A761D9041C000CD721D /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		DBAE20D724E1C30900206405 /* LoginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,6 +89,7 @@
 				0EAF30A51BFD803800EF6216 /* AppDelegate.swift */,
 				0EAF30A71BFD803800EF6216 /* ViewController.swift */,
 				0EA8BB951CD57DB80005052A /* LoadDataViewController.swift */,
+				DBAE20D724E1C30900206405 /* LoginViewController.swift */,
 				0EAF30A91BFD803800EF6216 /* Main.storyboard */,
 				0EAF30AF1BFD803800EF6216 /* Assets.xcassets */,
 				0EAF30B11BFD803800EF6216 /* LaunchScreen.storyboard */,
@@ -152,6 +155,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 				Base,
 			);
@@ -183,6 +187,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DBAE20D824E1C30900206405 /* LoginViewController.swift in Sources */,
 				0EA8BB961CD57DB80005052A /* LoadDataViewController.swift in Sources */,
 				0EAF30AE1BFD803800EF6216 /* fatmind.xcdatamodeld in Sources */,
 				0EAF30A81BFD803800EF6216 /* ViewController.swift in Sources */,

@@ -13,7 +13,6 @@ enum QuantumState {
     case editing, adding
 }
 
-
 class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UITextViewDelegate {
 
     @IBOutlet weak var quantumTextView: UITextView!
@@ -59,7 +58,6 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
 //                                       selector: Selector(("textFieldDidChange:")),
 //                                       name: NSNotification.Name.UITextViewTextDidChange,
 //                                       object: nil)
-        
         
         //open and connect to db
         if quantumDB.openDB() {
@@ -169,13 +167,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             //check if button label it CLEAR, then clear text in UITextView
             //  reset the buttons to SEARCH left button and Add right button
             if button.titleLabel!.text! == "Clear" {
-                self.quantumTextView.text = ""
-                self.returnedPressed = 0
-                //put cursor in UITextView -- focus
-                self.quantumTextView.becomeFirstResponder()
-                //reset labels of buttons
-                self.leftButton.setTitle("Search", for: UIControlState())
-                self.rightButton.setTitle("Add", for: UIControlState())
+                 self.resetView()
             } else {
                 //add quantum to local db
                 self.addQuantum()
@@ -269,19 +261,24 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     //Function executed when left swipe over UITextView is detected
     //  it clears the text from the UITextview, and resets labels of buttons
     @objc func clearUITextView(_ sender:UITapGestureRecognizer) {
-        print("cleared screen")
-        //clear text in UITextView
-        self.quantumTextView.text = ""
-        self.returnedPressed = 0
-        self.quantumState = QuantumState.adding
-        self.quantumList.removeAll()
-        quantumListTableView.reloadData()
-        //reset labels of buttons
-        leftButton.setTitle("Search", for: UIControlState())
-        rightButton.setTitle("Add", for: UIControlState())
-        
-        //put cursor in UITextView -- focus
-        self.quantumTextView.becomeFirstResponder()
+        self.resetView()
+    }
+    
+    
+    func resetView() {
+       print("cleared screen")
+       //clear text in UITextView
+       self.quantumTextView.text = ""
+       self.returnedPressed = 0
+       self.quantumState = QuantumState.adding
+       self.quantumList.removeAll()
+       quantumListTableView.reloadData()
+       //reset labels of buttons
+       leftButton.setTitle("Search", for: UIControlState())
+       rightButton.setTitle("Add", for: UIControlState())
+       
+       //put cursor in UITextView -- focus
+       self.quantumTextView.becomeFirstResponder()
     }
     
     //Function for alert dialog
@@ -320,8 +317,6 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         return dateFormatter.string(from: dateNow)
     }
 
-    
-    
     // MARK: - TableViewControllers Functions
     
     //tableview number of rows

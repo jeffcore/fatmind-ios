@@ -13,14 +13,13 @@ class APIService {
     let apiKey = "aD7WrqSxV8ur7C59Ig6gf72O5El0mz04"
     //user api authentication token
     let apiToken = UserDefaults.standard.string(forKey: "token") ?? ""
-
      
     //base url for api
-    //let apiURL = "http://localhost:3000"
+    //let apiURL = "http://localhost:3002"
 
-    let apiURL = "http://192.168.25.31:3000"
+    let apiURL = "http://192.168.25.31:3002"
     
-    init(){}
+    init() {}
     
     // MARK: - Quantum API Calls
     
@@ -323,6 +322,7 @@ class APIService {
             //check for connection error
             
             if let e = error {
+                print("error HUGE")
                 callback(0, ["data" : e.localizedDescription ])
             } else {
                 let httpResponse = response as! HTTPURLResponse
