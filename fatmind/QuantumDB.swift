@@ -8,7 +8,6 @@
 import UIKit
 import Foundation
 
-
 class QuantumDB {
     var service = APIService()
     let userDefaults:UserDefaults!
@@ -125,13 +124,31 @@ class QuantumDB {
         let documentsDirectory = paths[0] as NSString
         return documentsDirectory.appendingPathComponent("data.sqlite") as String
     }
- 
-    
     
     //MARK: Syncing Functions
     
-
-    
+    public func mainSync(_ callback: @escaping (Bool) -> ()) {
+        
+        self.syncFromServer {
+        (status) in
+            print("AppDelegate.swift: quantumDB.syncFromServer return status - \(status)")
+            if status {
+                self.syncToServer {
+                    (status) in
+                    if status {
+                        print("AppDelegate.swift: status of run quantumDB.syncToServer  call - \(status)")
+                        callback(true)
+                    } else {
+                        callback(false)
+                    }
+                }
+            } else {
+                callback(false)
+            }
+        }
+        
+    }
+        
     //loads quantum changes from API service
     public func syncFromServer(_ callback: @escaping (Bool) -> ()) {
         print("QuantumDB.swift: running function syncFromServer in QuantumDB")

@@ -29,8 +29,9 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     var quantumList = [Quantum]()
     let service = APIService()
     let quantumDB = QuantumDB()
+    let user = User()
     var userDefaults:UserDefaults!
-    
+    var window: UIWindow?
 // MARK: - ViewController Functions
 
     override func viewDidLoad() {
@@ -59,10 +60,39 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
 //                                       name: NSNotification.Name.UITextViewTextDidChange,
 //                                       object: nil)
         
+        
+        
+        
+        
+        
         //open and connect to db
         if quantumDB.openDB() {
-            print("database opened")
+         
+            service.getIsServiceAlive {
+                (isAvail) in
+                if isAvail {
+                    if self.user.needLogin() {
+                        DispatchQueue.main.async {
+                            print("data never imported move to seque")
+//                            let storyboard:UIStoryboard = UIStoryboard(name: "Main", bundle: nil)
+//                            let vc:LoginViewController = storyboard.instantiateViewController(withIdentifier: "LoginViewController") as! LoginViewController
+//                            self.window?.rootViewController = vc
+//                            self.window?.makeKeyAndVisible()
+                            self.performSegue(withIdentifier: "MainToLogin", sender: self)
+                            
+                        }
+                    } else {
+                        self.quantumDB.mainSync() {
+                            (status) in
+                            print(status)
+                        }
+                    }
+                }
+            }
+        } else {
+            print("trouble creating database")
         }
+        
     }
     
     override func didReceiveMemoryWarning() {
@@ -229,8 +259,8 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             quantumIndex = 0
             quantumListTableView.reloadData()
             //button.setTitle("Quantum Added", forState: .Normal)
-            self.leftButton.setTitle("Save", for: UIControlState())
-            self.rightButton.setTitle("Clear", for: UIControlState())
+            self.leftButton.setTitle("Save", for: UIControl.State())
+            self.rightButton.setTitle("Clear", for: UIControl.State())
             
             //TODO: add successful bool  - add to quantumList - alert not succesful error
             
@@ -274,8 +304,8 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
        self.quantumList.removeAll()
        quantumListTableView.reloadData()
        //reset labels of buttons
-       leftButton.setTitle("Search", for: UIControlState())
-       rightButton.setTitle("Add", for: UIControlState())
+       leftButton.setTitle("Search", for: UIControl.State())
+       rightButton.setTitle("Add", for: UIControl.State())
        
        //put cursor in UITextView -- focus
        self.quantumTextView.becomeFirstResponder()
@@ -288,7 +318,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                                        message: "Data will not be synced",
                                        preferredStyle: .alert)
         // Present the dialog.
-        let okAction = UIAlertAction(title: "OK", style: UIAlertActionStyle.default) {
+        let okAction = UIAlertAction(title: "OK", style: UIAlertAction.Style.default) {
             UIAlertAction in
             NSLog("OK Pressed")
         }
@@ -349,8 +379,8 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         self.returnedPressed = 0
         self.dismissKeyboard()
         
-        self.leftButton.setTitle("Save", for: UIControlState())
-        self.rightButton.setTitle("Clear", for: UIControlState())
+        self.leftButton.setTitle("Save", for: UIControl.State())
+        self.rightButton.setTitle("Clear", for: UIControl.State())
         
         print("clicked \((indexPath as NSIndexPath).row)")
     }

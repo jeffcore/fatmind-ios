@@ -17,7 +17,7 @@ class APIService {
     //base url for api
     //let apiURL = "http://localhost:3002"
 
-    let apiURL = "http://192.168.25.31:3002"
+    let apiURL = "http://fatmind.local:3000"
     
     init() {}
     
@@ -91,7 +91,7 @@ class APIService {
         }
     }
     
-    func loginUser(callback:@escaping(Int, NSDictionary) -> ())
+    func loginUser(withEmail email:String, withPassword password:String, callback:@escaping(Int, NSDictionary) -> ())
     {
         let url = "\(apiURL)/api/login"
         var quantumDictionary = [String: String]()
@@ -100,7 +100,7 @@ class APIService {
         
         // var quantumData: Dictionary<String, String>
         
-        quantumDictionary = ["email": "rixempire@gmail.com", "password": "553399"]
+        quantumDictionary = ["email": email, "password": password]
         
         do {
             quantumJSON = try JSONSerialization.data(withJSONObject: quantumDictionary, options: [])

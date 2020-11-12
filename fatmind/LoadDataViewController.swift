@@ -12,7 +12,6 @@ class LoadDataViewController: UIViewController {
     
     @IBOutlet weak var loadingIndicator: UIActivityIndicatorView!
     let quantumDB = QuantumDB()
-    let service = APIService()
     var window: UIWindow?
     
     @IBOutlet weak var lblActivity: UILabel!
@@ -31,44 +30,34 @@ class LoadDataViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
     }
-    
+    func getTopMostViewController() -> UIViewController? {
+        var topMostViewController = UIApplication.shared.keyWindow?.rootViewController
+
+        while let presentedViewController = topMostViewController?.presentedViewController {
+            topMostViewController = presentedViewController
+        }
+
+        return topMostViewController
+    }
     override func viewDidAppear(_ animated: Bool) {
         //db not imported so run the initial data import
         if quantumDB.openDB() {
-            service.getIsServiceAlive {
-                (status) in
-                if status {
-                    // self.lblActivity.text = "service available"
-                    print("AppDelegate.swift: quantumDB.syncToServer ")
+            
+            print("AppDelegate.swift: quantumDB.syncToServer ")
 
-                    self.quantumDB.syncFromServer {
-                    (status) in
-                        print("AppDelegate.swift: quantumDB.syncFromServer return status - \(status)")
-                        if status {
-                            self.quantumDB.syncToServer {
-                                (status) in
-                                if status {
-                                    print("AppDelegate.swift: status of run quantumDB.syncToServer  call - \(status)")
-                                }
-                                DispatchQueue.main.async{
-                                    self.performSegue(withIdentifier: "SegueToMainVC", sender: self)
-                                }
-                            }
-                        } else {
-                            DispatchQueue.main.async{
-                                self.performSegue(withIdentifier: "SegueToMainVC", sender: self)
-                            
-                            }
-                        }
-                    }
-                } else {
-                    self.lblActivity.text = "service unavailable"
-                    DispatchQueue.main.async{
-                        self.performSegue(withIdentifier: "SegueToMainVC", sender: self)
-                    }
-                    print("no service")
+            self.quantumDB.mainSync() {
+                (status) in
+                print(status)
+                print("got here inital sync before segue")
+               
+                DispatchQueue.main.async {
+                    self.dismiss(animated: true, completion: nil)
+                    self.presentingViewController?.presentingViewController?.dismiss(animated: true, completion: nil)
+
+                    
                 }
             }
         }
+        
     }
 }

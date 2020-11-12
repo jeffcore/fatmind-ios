@@ -11,11 +11,8 @@ import UIKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
-
-    var window: UIWindow?
-   
     
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch. 
         return true
     }
@@ -36,64 +33,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationDidBecomeActive(_ application: UIApplication) {
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
-        print("did become active")
-        print("AppDelegate.swift")
-        
-        let service = APIService()
-        let quantumDB = QuantumDB()
-        service.getIsServiceAlive{
-            (isAvail) in
-            if isAvail {
-                service.loginUser {
-                    (statusCode, data) in
-                    print("login status code \(statusCode)")
-                    if statusCode != 401 && statusCode != 0 {
-                        
-                        print(data["token"]!)
-                        UserDefaults.standard.set(data["token"]!, forKey: "token")
-                        //check if the initial database was loaded from master
-                        if quantumDB.openDB() {
-                            if quantumDB.isInitialDataLoaded() {
-                                print("appdelegate isinitaldataloaded is true")
-                //                        //utility function to see all quantums in db
-                //                        //quantumDB.getAllQuantum();
-                               
-                                        quantumDB.syncFromServer {
-                                            (status) in
-                                            print("AppDelegate.swift: quantumDB.syncFromServer return status - \(status)")
-                                            if status {
-                                                print("AppDelegate.swift: quantumDB.syncToServer ")
-                
-                                                quantumDB.syncToServer {
-                                                    (status) in
-                                                    if status {
-                                                        print("AppDelegate.swift: status of run quantumDB.syncToServer  call - \(status)")
-                                                    }
-                                                }
-                                            }
-                                        }
-                            } else {
-                                DispatchQueue.main.async {
-                                    print("data never imported move to seque")
-                                    let storyboard:UIStoryboard = UIStoryboard(name: "Main", bundle: nil)
-                                    let vc:LoadDataViewController = storyboard.instantiateViewController(withIdentifier: "LoadDataViewController") as! LoadDataViewController
-                                    self.window?.rootViewController = vc
-                                    self.window?.makeKeyAndVisible()
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                DispatchQueue.main.async {
-                    print("data never imported move to seque")
-                    let storyboard:UIStoryboard = UIStoryboard(name: "Main", bundle: nil)
-                    let vc:LoginViewController = storyboard.instantiateViewController(withIdentifier: "LoginViewController") as! LoginViewController
-                    self.window?.rootViewController = vc
-                    self.window?.makeKeyAndVisible()
-                }
-            }
-        }
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
